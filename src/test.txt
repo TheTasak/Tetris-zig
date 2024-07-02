@@ -1,0 +1,4 @@
+I am a text file
+That will be used
+For reading in Zig
+That's my purpose
