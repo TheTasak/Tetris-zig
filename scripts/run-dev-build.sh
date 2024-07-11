@@ -1,3 +1,3 @@
 #!/usr/bin/env bash
 
-time zig build && ./zig-out/bin/test
+time zig build && ./zig-out/bin/tetris

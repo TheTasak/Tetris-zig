@@ -3,6 +3,7 @@ const std = @import("std");
 
 const board = @import("board.zig");
 const tetromino = @import("tetromino.zig");
+const game = @import("game.zig");
 
 const screenWidth = 1200;
 const screenHeight = 900;
@@ -16,46 +17,37 @@ pub fn main() anyerror!void {
 
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     const allocator = gpa.allocator();
-    var g_board = board.Board{ .allocator = allocator };
-    g_board.init(&prng, tetromino.Vec2{.x = screenWidth * 0.7, .y = screenHeight * 0.9}) catch |err| {
+    var g_board = board.Board{ .allocator = allocator, .game_speed = 0.8 };
+
+    g_board.init(
+        &prng,
+        tetromino.Vec2(usize){.x = screenWidth * 0.5, .y = screenHeight }
+    ) catch |err| {
         return err;
     };
 
-    defer g_board.deinit();
+    var game_handle = game.Game{
+        .board = &g_board,
+        .screen_size = tetromino.Vec2(usize){.x = screenWidth, .y = screenHeight},
+    };
+
+    defer game_handle.deinit();
 
     rl.initWindow(screenWidth, screenHeight, "Tetris");
     defer rl.closeWindow();
 
-    rl.setTargetFPS(60);
+    rl.setTargetFPS(30);
 
     var sumTime: f32 = 0;
-    var speed: f16 = 0.8;
 
     while (!rl.windowShouldClose()) {
-        const deltaTime: f32 = rl.getFrameTime();
-        sumTime += deltaTime;
+        game_handle.update(&prng, &sumTime);
 
-        if (sumTime > 1 / speed) {
-            g_board.moveTetromino(&prng, tetromino.Direction.Down);
-            sumTime = 0;
-            speed += 0;
-        }
-
-        if (rl.isKeyPressed(rl.KeyboardKey.key_left)) {
-            g_board.moveTetromino(&prng, tetromino.Direction.Left);
-        } else if (rl.isKeyPressed(rl.KeyboardKey.key_right)) {
-            g_board.moveTetromino(&prng, tetromino.Direction.Right);
-        } else if (rl.isKeyPressed(rl.KeyboardKey.key_down)) {
-            g_board.moveTetromino(&prng, tetromino.Direction.Down);
-        } else if (rl.isKeyPressed(rl.KeyboardKey.key_up)) {
-            g_board.rotateTetromino();
-        }
+        game_handle.handleInputs(&prng);
 
         rl.beginDrawing();
         defer rl.endDrawing();
 
-        rl.clearBackground(rl.Color.white);
-
-        g_board.draw();
+        game_handle.draw();
     }
 }
